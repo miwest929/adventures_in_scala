@@ -1,5 +1,6 @@
 import scala.io._
 import scala.sys.process._
+import scala.language.postfixOps
 
 class Page(var url: String, var title: String, var words: Array[String] = Array[String]()) {
   override def toString = s"$title <=> $url"
@@ -35,7 +36,14 @@ class HtmlReader {
 
     val result = s"curl $url" #| "java -jar lib/tika-app-1.5.jar --text" !!
 
-    result.split("\n")
+    parse( result.split("\n") )
+  }
+
+  private def parse(contents: Array[String]) = contents.flatMap(getWords _)
+  private def getWords(line: String) = {
+    val delimeters = "[ ().,;]+"
+
+    line.split(delimeters)
   }
 }
 
@@ -45,16 +53,9 @@ class PageRegistry {
   var html = new HtmlReader
 
   def register(page: Page) = {
-    page.words = parse( html.read(page.url) )
-    println(s"Found ${page.words.length}!!")
+    page.words = html.read(page.url)
+    println(page.words.mkString(", "))
     pages +:= page
-  }
-
-  private def parse(contents: Array[String]) = contents.flatMap(getWords _)
-  private def getWords(line: String) = {
-    val delimeters = "[ ().,;]+"
-
-    line.split(delimeters)
   }
 }
 
